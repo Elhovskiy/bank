@@ -1,84 +1,87 @@
 import argparse
-from models.auth import Authentication
+from models.customer import Customer
 
-def command_interface(command,bank):
-    auth = Authentication(bank)
-    args = command.split()
+def command_interface(command, bank, auth):
+    args = command.strip().split()
     if not args:
         return
     cmd = args[0]
 
     if cmd == 'login':
-        auth.authentication(args[1], args[2])
+        if len(args) < 3:
+            print("⚠️ Использование: login <name> <password>")
+            return
+        try:
+            auth.authentication(args[1], args[2])
+        except Exception as e:
+            print(f"❌ Ошибка входа: {e}")
+        bank.load_account()
+    elif cmd == 'regist':
+        if len(args) < 3:
+            print("⚠️ Использование: regist <name> <password>")
+            return
+        try:
+            auth.registration(args[1], args[2])
+        except Exception as e:
+            print(f"❌ Ошибка входа: {e}")
+    elif cmd == 'add_ac':
+        if not auth.checking_user_authentication():
+            return
+        try:
+            bank.add_account_bd()
+        except Exception as e:
+            print(f"❌ Ошибка добавлении счета: {e}")
+
+    elif cmd == 'list_ac':
+        if not auth.checking_user_authentication():
+            return
+        bank.list_of_account()
+
     elif cmd == 'deposit':
+        if not auth.checking_user_authentication():
+            return
         account = bank.accounts.get(args[1])
+        if not account:
+            print("❌ Счет не найден.")
+            return
+        if account.owner != auth.current_user.name:
+            print("❌ Вы не владелец этого счета.")
+            return
         account.deposit(int(args[2]))
+
     elif cmd == 'withdraw':
+        if not auth.checking_user_authentication():
+            return
+        print(bank.accounts.get(args[1]))
         account = bank.accounts.get(args[1])
-        if not auth.user_verification(account):
-            print("�� Недоступен для операции с этим счетом.")
+        if not account:
+            print("❌ Счет не найден.")
+            return
+        if account.owner != auth.current_user.name:
+            print("❌ Вы не владелец этого счета.")
             return
         account.withdraw(int(args[2]))
+
     elif cmd == 'transfer':
+        if not auth.checking_user_authentication():
+            return
         from_account_id = args[1]
         to_account_id = args[2]
         amount = int(args[3])
-        if not auth.user_verification(from_account_id):
-            print("�� Недоступен для операции с этим счетом.")
+
+        from_account = bank.accounts.get(from_account_id)
+        if not from_account or from_account.owner != auth.current_user.name:
+            print("❌ Нельзя переводить с чужого счета.")
             return
-        print(f"🔍 Передача средств: {args[2]} → {args.to_ac[3]}, сумма {args[4]}")
         bank.transfer(from_account_id, to_account_id, amount)
 
-    """auth = Authentication(bank)
-    parser = argparse.ArgumentParser(description='Банк')
-    subparsers = parser.add_subparsers(dest="command")
+    elif cmd == 'help':
+        print('login:    Команда для авторизации пользователя\n'
+              'regist:   Команда для регистрации пользователя\n'
+              'add_ac:   Команда для добавления счёта\n'
+              'list_aс:  Команда для просмотра всех доступных счетов\n'
+              'deposit:  Команда для пополнения баланса счёта\n'
+              'withdraw: Команда для снятия денег со счета\n'
+              'transfer: Команда для перевода денег')
 
-    login = subparsers.add_parser("login")
-    login.add_argument("--name", help="Имя клиента")
-    login.add_argument("--password", help="Пароль")
-
-    deposit = subparsers.add_parser("deposit")
-    deposit.add_argument("--account", type=str, help="Номер счета")
-    deposit.add_argument("--amount", type=int, help="Сумма пополнения")
-
-    withdraw = subparsers.add_parser("withdraw")
-    withdraw.add_argument("--account", type=str, help="Номер счета")
-    withdraw.add_argument("--amount", type=int, help="Сумма снятия")
-
-    transfer = subparsers.add_parser("transfer")
-    transfer.add_argument("--from_ac", required=True, help="Номер исходного счета")
-    transfer.add_argument("--to_ac", required=True, help="Номер получателя")
-    transfer.add_argument("--amount", type=int
-                          , help="Сумма перевода")
-
-    history = subparsers.add_parser("history")
-    history.add_argument("--account", type=str, help="Номер счета")
-
-    args = parser.parse_args()
-
-    if args.command == "login":
-        auth.authentication(args.name, args.password)
-    elif args.command == "deposit":
-        account = bank.accounts.get(args.account)
-        print("Содержимое bank.accounts:", bank.accounts)
-        print("Тип account:", type(account))
-        account.deposit(args.amount)
-    elif args.command == "withdraw":
-        if not auth.user_verification(args.account):
-            print("�� Недоступен для операции с этим счетом.")
-            return
-        account = bank.accounts.get(args.account)
-        account.withdraw(args.amount)
-    elif args.command == "transfer":
-        if not auth.user_verification(args.from_ac):
-            print("�� Недоступен для операции с этим счетом.")
-            return
-        print("📋 Доступные счета в банке:", bank.accounts.keys())
-        print(f"🔍 Передача средств: {args.from_ac} → {args.to_ac}, сумма {args.amount}")
-        print(f"🔍 Проверяем счета: {list(bank.accounts.keys())}")
-        print(f"🔍 Найденный from_account: {bank.accounts.get(args.from_ac)}")
-        print(f"🔍 Найденный to_account: {bank.accounts.get(args.to_ac)}")
-        bank.transfer(args.from_ac,args.to_ac, args.amount)
-    else:
-        parser.print_help()"""
 

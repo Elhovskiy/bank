@@ -1,55 +1,52 @@
 import logging
 import psycopg2
-from models.account import Account
+import os
+from dotenv import load_dotenv
+from models.auth import Authentication
 from models.customer import Customer
+from models.account import Account
+
+load_dotenv()
+
 class Bank:
-    def __init__(self, filename_account, filename_customers):
+    def __init__(self, filename_account):
         self.filename_account = filename_account
-        self.filename_customers = filename_customers
-        self.customers = []
+        self.customer = []
         self.accounts = {}
+        try:
+            self.conn = psycopg2.connect(dbname=os.getenv('DB_NAME'), user=os.getenv('USER'), password=os.getenv('PASSWORD'), host=os.getenv('HOST'))
+        except:
+            print("❌ Введены неправельные данные для подключения БД")
 
     def load_account(self):
+        for customer in self.customer:
+            with self.conn.cursor() as curs:
+                curs.execute('SELECT * FROM account WHERE id_c=%s', (customer.customer_id,))
+                self.conn.commit()
+                row = curs.fetchone()
+                if row:
+                    self.accounts[str(row[0])] = Account(row[0], customer.name, row[1], self)
+                    for acc_number, account in self.accounts.items():
+                        customer.add_account_customer(account)
+                else:
+                    logging.error(f"❌ Ошибка при загрузки счёта ")
 
-        """with open(self.filename_account, 'r', encoding="utf-8") as file:
-            for line in file:
-                print(f"📂 Загружаем строку: {line.strip()}")
-                account_number, owner, balance = line.strip().split(", ")
-                balance = float(balance)
-                self.accounts[account_number] = Account(account_number, owner, balance, self)
-                print(f"✅ Загружен: {account_number} | {owner} | Баланс: {balance}")
+    def add_account_bd(self):
+        with self.conn.cursor() as curs:
+            try:
+                curs.execute('INSERT INTO account (balance, id_c) VALUES (%s, %s)', (0, self.customer[0].customer_id))
+                self.load_account()
+                print('✅ Новый счет успешно добавлен' )
+            except:
+                logging.error("❌ Ошибка при добавлении нового счета счёта ")
+                raise Exception("❌ Ошибка при добавлении нового счета счёта ")
 
-        for acc_number, account in self.accounts.items():
-            for customer in self.customers:
-                if account.owner == customer.name:
-                    customer.add_account(account, acc_number)
-                    print(f"Привязан счет {acc_number} к клиенту {customer.name}")"""
-
-    def load_customers(self):
-        with open(self.filename_customers, 'r', encoding="utf-8") as file:
-            for line in file:
-                print(f"📂 Загружаем строку: {line.strip()}")
-                customer_id, name, password = line.strip().split(", ")
-                customer = Customer(name, customer_id, password)
-                self.customers.append(customer)
-
-
-    def save_accounts(self):
-        with open(self.filename_account, 'w', encoding="utf-8") as file:
+    def list_of_account(self):
+        if self.accounts:
             for acc_number, account in self.accounts.items():
-                file.write(f"{acc_number}, {account.owner}, {account.balance}\n")
-
-    def save_customer(self):
-        with open(self.filename_customers, 'w', encoding="utf-8") as file:
-            for customer_id, customer in self.accounts.items():
-                file.write(f"{customer_id}, {customer.name}, {customer.password}\n")
-
-
-    def add_customer(self, customer):
-        self.customers.append(customer)
-        self.accounts.update(customer.accounts)
-        print(dict(self.accounts))
-        print(f'Добавлен новый клиент{customer.name}')
+                print(f'Cчёт: {acc_number} Баланс: {account.balance}')
+        else:
+            print('У вас пока нет ни одного счета')
 
     def transfer(self, from_account_id, to_account_id, amount):
 
@@ -63,7 +60,5 @@ class Bank:
 
         from_account.withdraw(amount)
         to_account.deposit(amount)
-        self.save_accounts()
-
         logging.info(f"Выполнен перевод ${amount} c ${from_account.account_number} на ${to_account.account_number}")
         print(f'Перевод средств с {from_account.account_number} на {to_account.account_number}: ${amount}')

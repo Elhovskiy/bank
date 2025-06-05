@@ -1,17 +1,30 @@
+import psycopg2
+from models.customer import Customer
 class Authentication:
     def __init__(self, bank):
         self.bank = bank
         self.current_user = None
 
+    def registration(self, name: str, password: str):
+        with self.bank.conn.cursor() as curs:
+            curs.execute('INSERT INTO customer (name, password) VALUES(%s, %s);', (name, password))
+            self.bank.conn.commit()
+            print('✅ Вы успешно зарегистрировались. Войдите чтобы продолжить!')
+
     def authentication(self, name: str, password: str):
-        for customer in self.bank.customers:
-            if customer.name == name and customer.password == password:
-                self.current_user = customer
-                print("Аутентификая успешна")
-                return
-        raise Exception('Неверные учетные данные')
-    def user_verification(self, account_number):
+        with self.bank.conn.cursor() as curs:
+            curs.execute('SELECT * FROM customer WHERE name=%s AND password=%s', (name, password))
+            self.bank.conn.commit()
+            row = curs.fetchone()
+            if row:
+                self.current_user = Customer(row[0], row[1], row[2])
+                self.bank.customer.append(self.current_user)
+                print(f"✅ Аутентификация успешна. Добро пожаловать, {name}!")
+            else:
+                raise Exception("❌ Аутентификация не пройдена. Проверьте имя и пароль.")
+
+    def checking_user_authentication(self):
         if not self.current_user:
-            print("Вы не вошли в систему")
+            print("❌ Вы не вошли в систему.")
             return False
-        return account_number == self.current_user.accounts
+        return True
