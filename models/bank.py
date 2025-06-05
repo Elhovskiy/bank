@@ -9,8 +9,7 @@ from models.account import Account
 load_dotenv()
 
 class Bank:
-    def __init__(self, filename_account):
-        self.filename_account = filename_account
+    def __init__(self):
         self.customer = []
         self.accounts = {}
         try:

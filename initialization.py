@@ -6,7 +6,7 @@ from models.auth import Authentication
 import logging
 
 def create_bank_system():
-    bank = Bank("account.txt")
+    bank = Bank()
 
     return bank
 def run_bank():
