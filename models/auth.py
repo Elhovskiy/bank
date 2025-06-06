@@ -1,4 +1,5 @@
 import psycopg2
+import hashlib
 from models.customer import Customer
 class Authentication:
     def __init__(self, bank):
@@ -7,13 +8,13 @@ class Authentication:
 
     def registration(self, name: str, password: str):
         with self.bank.conn.cursor() as curs:
-            curs.execute('INSERT INTO customer (name, password) VALUES(%s, %s);', (name, password))
+            curs.execute('INSERT INTO customer (name, password) VALUES(%s, %s);', (name, hashlib.sha256(password.encode()).hexdigest()))
             self.bank.conn.commit()
             print('✅ Вы успешно зарегистрировались. Войдите чтобы продолжить!')
 
     def authentication(self, name: str, password: str):
         with self.bank.conn.cursor() as curs:
-            curs.execute('SELECT * FROM customer WHERE name=%s AND password=%s', (name, password))
+            curs.execute('SELECT * FROM customer WHERE name=%s AND password=%s', (name, hashlib.sha256(password.encode()).hexdigest()))
             self.bank.conn.commit()
             row = curs.fetchone()
             if row:
