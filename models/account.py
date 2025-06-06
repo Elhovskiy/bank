@@ -1,6 +1,6 @@
 import logging
 class Account:
-    def __init__(self,account_number,owner , balance, bank):# account number - номер счета
+    def __init__(self,account_number, owner, balance, bank):  # account number - номер счета
         self.account_number = account_number
         self.balance = balance
         self.owner = owner  # owner - владелец счета
@@ -18,7 +18,7 @@ class Account:
         self.bank.save_accounts()
         logging.info(f'Депозит средств на счёт ${self.account_number}: ${amount}')
 
-    def withdraw(self,amount):
+    def withdraw(self, amount):
         if amount > self.balance:
             logging.error(f"Попытка снять больше средств, чем есть на счёте ${self.account_number}: ${amount}")
             raise ValueError('Недостаточно средств')
