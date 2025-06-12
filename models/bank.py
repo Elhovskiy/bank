@@ -8,33 +8,33 @@ from models.account import Account
 
 load_dotenv()
 
+
 class Bank:
     def __init__(self):
-        self.customer = []
-        self.accounts = {}
+        self.customer: Customer = None
+        self.accounts: dict[str, Account] = {}
         try:
             self.conn = psycopg2.connect(dbname=os.getenv('DB_NAME'), user=os.getenv('USER'), password=os.getenv('PASSWORD'), host=os.getenv('HOST'))
         except:
             print("❌ Введены неправельные данные для подключения БД")
 
     def load_account(self):
-        for customer in self.customer:
-            with self.conn.cursor() as curs:
-                curs.execute('SELECT * FROM account WHERE id_c=%s', (customer.customer_id,))
-                self.conn.commit()
-                row = curs.fetchone()
-                if row:
-                    self.accounts[str(row[0])] = Account(row[0], customer.name, row[1], self)
-                    for acc_number, account in self.accounts.items():
-                        customer.add_account_customer(account)
-                else:
-                    logging.error(f"❌ Ошибка при загрузки счёта ")
+        with self.conn.cursor() as curs:
+            curs.execute('SELECT * FROM account WHERE id_c=%s', (self.customer.customer_id,))
+            row = curs.fetchone()
+            if row:
+                self.accounts[str(row[0])] = Account(row[0], self.customer.name, row[1], self)
+                for acc_number, account in self.accounts.items():
+                    self.customer.add_account_customer(account)
+            else:
+                logging.error(f"❌ Ошибка при загрузки счёта ")
 
     def add_account_bd(self):
         with self.conn.cursor() as curs:
             try:
                 curs.execute('INSERT INTO account (balance, id_c) VALUES (%s, %s)', (0, self.customer[0].customer_id))
                 self.load_account()
+                self.conn.commit()
                 print('✅ Новый счет успешно добавлен' )
             except:
                 logging.error("❌ Ошибка при добавлении нового счета счёта ")

@@ -12,15 +12,14 @@ class Authentication:
             self.bank.conn.commit()
             print('✅ Вы успешно зарегистрировались. Войдите чтобы продолжить!')
 
-    def authentication(self, name: str, password: str):
+    def authentication(self, name: str, password: str) -> Customer:
         with self.bank.conn.cursor() as curs:
             curs.execute('SELECT * FROM customer WHERE name=%s AND password=%s', (name, hashlib.sha256(password.encode()).hexdigest()))
-            self.bank.conn.commit()
             row = curs.fetchone()
             if row:
                 self.current_user = Customer(row[0], row[1], row[2])
-                self.bank.customer.append(self.current_user)
                 print(f"✅ Аутентификация успешна. Добро пожаловать, {name}!")
+                return self.current_user
             else:
                 raise Exception("❌ Аутентификация не пройдена. Проверьте имя и пароль.")
 
